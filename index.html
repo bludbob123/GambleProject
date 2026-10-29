@@ -524,12 +524,27 @@
   }
   @keyframes jbText { 50% { color: #fff; } }
 
+  input[type="range"] { width: 170px; accent-color: var(--accent); }
+  .reel-wrap.waiting .reel { filter: brightness(.8) saturate(.55); }
+  .reel-wrap.go .reel { animation: boostGo .5s ease-out; }
+  @keyframes boostGo { 0% { box-shadow: 0 0 0 3px #fff, 0 0 26px 12px rgba(255, 214, 60, 1); } }
+  .name-field { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .name-field .lbl { font-size: 13px; font-weight: 600; }
+  .name-field input { padding-left: 11px; }
+  .lb { display: grid; gap: 6px; margin: 14px 0 0; padding: 0; list-style: none; }
+  .lb li { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--ui-soft); font-variant-numeric: tabular-nums; }
+  .lb .rank { font-family: var(--font-display); font-size: 10px; color: var(--ui-muted); }
+  .lb li:first-child .rank { color: #d99a00; }
+  .lb .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .lb .cnt { font-weight: 700; }
+  .lb li.me { box-shadow: inset 0 0 0 2px var(--accent); }
+  .lb-status { margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: var(--ui-muted); }
   #fw { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   #fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 32; pointer-events: none; }
 
   @media (prefers-reduced-motion: reduce) {
     .machine.ready { transition-duration: .15s; }
-    .bulb, .stop-btn:not(:disabled), .machine.flash .sign, .machine.jackpot .title, .reel-wrap.win .reel, .reel-wrap.shake { animation: none; }
+    .bulb, .stop-btn:not(:disabled), .machine.flash .sign, .machine.jackpot .title, .reel-wrap.win .reel, .reel-wrap.shake, .reel-wrap.go .reel { animation: none; }
     .bulb { background: #fff6c4; }
     .reel-wrap.stamped .void-stamp { animation: fadeIn .15s forwards; transform: translate(-50%, -50%) rotate(-14deg); }
     .lever.pull .lever-arm { animation: pullShort .25s ease-out; }
@@ -553,6 +568,9 @@
 <div class="corner right">
   <button class="icon-btn" id="muteBtn" type="button" aria-label="Sound" aria-pressed="true">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path class="snd-on" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/><path class="snd-off" d="M22 9l-6 6M16 9l6 6"/></svg>
+  </button>
+  <button class="icon-btn" id="lbBtn" type="button" aria-label="Jackpot leaderboard">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 6h3v2a3 3 0 0 1-3 3M7 6H4v2a3 3 0 0 0 3 3"/></svg>
   </button>
   <button class="icon-btn" id="helpBtn" type="button" aria-label="How to play">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
@@ -645,6 +663,7 @@
     <thead><tr><th scope="col">Outcome</th><th scope="col">Chance</th><th scope="col">Expected</th><th scope="col">Seen</th></tr></thead>
     <tbody id="oddsBody"></tbody>
   </table>
+  <p class="return-line">* Boost odds count only spins with a match, because the boost reel spins only then.</p>
   <p class="return-line" id="returnLine"></p>
   <h3>Spin log</h3>
   <div class="log-tools">
@@ -668,10 +687,17 @@
       </button>
     </div>
     <div class="disclaimer" id="disclaimer"></div>
+    <h3>Your name</h3>
+    <label class="name-field" for="playerName">
+      <span class="lbl">Shown on the jackpot leaderboard</span>
+      <span class="num"><input id="playerName" type="text" maxlength="20" autocomplete="nickname" placeholder="e.g. Sam" spellcheck="false"></span>
+    </label>
+    <p class="hint">It’s shown publicly next to any jackpots you win, so a nickname is a good idea.</p>
+    <p class="err" id="nameErr" role="alert"></p>
     <h3>How to play</h3>
     <ol class="rules" id="rules"></ol>
     <p class="tip" id="zoomTip"></p>
-    <button class="btn primary wide" type="button" data-close autofocus>Let’s play</button>
+    <button class="btn primary wide" id="introOk" type="button" style="margin-top:16px">Let’s play</button>
   </div>
 </dialog>
 
@@ -690,6 +716,24 @@
       <button class="switch" id="themeToggle" type="button" role="switch" aria-checked="false" aria-labelledby="themeLbl">
         <span class="switch-track"><span class="switch-thumb"></span></span>
       </button>
+    </div>
+
+    <h3>Sound</h3>
+    <div class="row">
+      <span class="row-label" id="allSoundLbl">All sound</span>
+      <button class="switch" id="allSound" type="button" role="switch" aria-checked="true" aria-labelledby="allSoundLbl"><span class="switch-track"><span class="switch-thumb"></span></span></button>
+    </div>
+    <div class="row">
+      <span class="row-label" id="musicLbl">Background music</span>
+      <button class="switch" id="musicToggle" type="button" role="switch" aria-checked="true" aria-labelledby="musicLbl"><span class="switch-track"><span class="switch-thumb"></span></span></button>
+    </div>
+    <div class="row">
+      <label class="row-label" for="musicVol">Music volume</label>
+      <input id="musicVol" type="range" min="0" max="100" step="1">
+    </div>
+    <div class="row">
+      <label class="row-label" for="sfxVol">Effects volume</label>
+      <input id="sfxVol" type="range" min="0" max="100" step="1">
     </div>
 
     <h3>Balance</h3>
@@ -726,6 +770,23 @@
     <div class="dlg-foot">
       <button class="btn" id="resetDefaults" type="button">Reset to defaults</button>
       <button class="btn primary" type="button" data-close>Done</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="lbDlg" aria-labelledby="lbTitle">
+  <div class="dlg">
+    <div class="dlg-head">
+      <h2 id="lbTitle">Jackpot leaderboard</h2>
+      <button class="close-x" type="button" data-close aria-label="Close leaderboard">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <p class="lb-status" id="lbStatus" role="status"></p>
+    <ol class="lb" id="lbList"></ol>
+    <div class="dlg-foot" style="align-items:center">
+      <span class="hint" id="lbYou"></span>
+      <button class="btn" id="lbRefresh" type="button">Refresh</button>
     </div>
   </div>
 </dialog>
@@ -767,7 +828,12 @@
   const MAX_VALUE = 1e6;
   const STORE_SETTINGS = 'boost7-settings';
   const STORE_THEME = 'boost7-theme';
-  const STORE_MUTED = 'boost7-muted';
+  const STORE_AUDIO = 'boost7-audio';
+  const STORE_NAME = 'boost7-name';
+  const STORE_PENDING = 'boost7-pending-jackpots';
+  // Firebase Realtime Database URL for the worldwide leaderboard, e.g.
+  // 'https://boost7-1234-default-rtdb.firebaseio.com'. Empty means it isn't set up yet.
+  const LEADERBOARD_URL = '';
 
   const $ = (s) => document.querySelector(s);
   const mqReduce = matchMedia('(prefers-reduced-motion: reduce)');
@@ -873,26 +939,44 @@
     row.innerHTML = '<span class="bulb"></span>'.repeat(15);
   });
 
-  // ---------- Sound (synthesised with Web Audio, no files) ----------
+  // ---------- Sound + music (synthesised with Web Audio, no files) ----------
   const sfx = (() => {
-    let ctx = null, out = null, noiseBuf = null, muted = false;
-    try { muted = localStorage.getItem(STORE_MUTED) === '1'; } catch (e) {}
+    const prefs = { muted: false, music: true, musicVol: 0.5, sfxVol: 0.8 };
+    try {
+      const p = JSON.parse(localStorage.getItem(STORE_AUDIO)) || {};
+      if (typeof p.muted === 'boolean') prefs.muted = p.muted;
+      if (typeof p.music === 'boolean') prefs.music = p.music;
+      if (Number.isFinite(p.musicVol)) prefs.musicVol = Math.min(1, Math.max(0, p.musicVol));
+      if (Number.isFinite(p.sfxVol)) prefs.sfxVol = Math.min(1, Math.max(0, p.sfxVol));
+    } catch (e) {}
+    let ctx = null, master, sfxBus, musicBus, noiseBuf;
+
+    function applyGains() {
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      master.gain.setTargetAtTime(prefs.muted ? 0 : 1, t, 0.03);
+      sfxBus.gain.setTargetAtTime(prefs.sfxVol * 0.6, t, 0.03);
+      musicBus.gain.setTargetAtTime(prefs.music ? prefs.musicVol * 0.5 : 0, t, 0.03);
+    }
     // Browsers only allow audio after a click or key press, so this runs on every input.
     function unlock() {
       if (!ctx) {
         const AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return;
         ctx = new AC();
-        out = ctx.createGain();
-        out.gain.value = 0.55;
-        out.connect(ctx.destination);
+        master = ctx.createGain(); sfxBus = ctx.createGain(); musicBus = ctx.createGain();
+        master.gain.value = 0; sfxBus.gain.value = 0; musicBus.gain.value = 0;
+        sfxBus.connect(master); musicBus.connect(master); master.connect(ctx.destination);
         noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
         const d = noiseBuf.getChannelData(0);
         for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        ctx.onstatechange = syncMusic;
+        applyGains();
       }
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx.state === 'suspended') ctx.resume().then(syncMusic, () => {});
+      syncMusic();
     }
-    const live = () => ctx && ctx.state === 'running' && !muted;
+    const live = () => ctx && ctx.state === 'running' && !prefs.muted;
     function env(g, t, attack, dur, peak) {
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(peak, t + attack);
@@ -900,19 +984,19 @@
     }
     function tone(freq, dur, o = {}) {
       if (!live()) return;
-      const t = ctx.currentTime + (o.at || 0);
+      const t = o.t != null ? o.t : ctx.currentTime + (o.at || 0);
       const osc = ctx.createOscillator(), g = ctx.createGain();
       osc.type = o.type || 'sine';
       osc.frequency.setValueAtTime(freq, t);
       if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + dur);
       env(g, t, o.attack || 0.005, dur, o.gain || 0.2);
-      osc.connect(g).connect(out);
+      osc.connect(g).connect(o.dest || sfxBus);
       osc.start(t);
       osc.stop(t + dur + 0.02);
     }
     function noise(dur, o = {}) {
       if (!live()) return;
-      const t = ctx.currentTime + (o.at || 0);
+      const t = o.t != null ? o.t : ctx.currentTime + (o.at || 0);
       const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
       src.buffer = noiseBuf;
       f.type = o.type || 'bandpass';
@@ -920,16 +1004,52 @@
       f.frequency.setValueAtTime(o.f0 || 1000, t);
       if (o.f1) f.frequency.exponentialRampToValueAtTime(o.f1, t + dur);
       env(g, t, o.attack || 0.005, dur, o.gain || 0.2);
-      src.connect(f).connect(g).connect(out);
+      src.connect(f).connect(g).connect(o.dest || sfxBus);
       src.start(t, Math.random() * 1.2);
       src.stop(t + dur + 0.02);
     }
+
+    // Chiptune loop: A minor, Am-F-C-G, 132 BPM, scheduled a little ahead of time.
+    const STEP = 60 / 132 / 4;   // one 16th note
+    const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
+    const BARS = [   // bass root, chord shape, lead (one entry per 16th, 0 = rest)
+      { root: 45, tri: [0, 3, 7], lead: [81, 0, 84, 0, 88, 0, 86, 84, 83, 0, 81, 0, 76, 0, 0, 0] },
+      { root: 41, tri: [0, 4, 7], lead: [77, 0, 81, 0, 84, 0, 83, 81, 79, 0, 77, 0, 72, 0, 0, 0] },
+      { root: 48, tri: [0, 4, 7], lead: [76, 0, 79, 0, 84, 0, 83, 79, 81, 0, 79, 0, 76, 0, 74, 0] },
+      { root: 43, tri: [0, 4, 7], lead: [74, 0, 79, 0, 83, 0, 86, 83, 81, 0, 79, 0, 83, 0, 0, 0] },
+    ];
+    let timer = 0, nextTime = 0, step = 0;
+    function playStep(st, t) {
+      const bar = BARS[st >> 4], i = st & 15, o = { t, dest: musicBus };
+      if (i % 2 === 0) tone(midi(bar.root + (i % 4 === 2 ? 12 : 0)), STEP * 1.8, { ...o, type: 'triangle', gain: 0.35 });
+      tone(midi(bar.root + 24 + bar.tri[i % 3] + (i >= 8 ? 12 : 0)), STEP * 0.8, { ...o, type: 'square', gain: 0.05 });
+      if (bar.lead[i]) tone(midi(bar.lead[i]), STEP * 1.9, { ...o, type: 'square', gain: 0.09 });
+      if (i === 0 || i === 8 || (i === 10 && st & 16)) tone(150, 0.16, { ...o, to: 45, gain: 0.6 });
+      if (i === 4 || i === 12) noise(0.11, { ...o, f0: 1800, q: 0.8, gain: 0.25 });
+      if (i % 2 === 1) noise(0.03, { ...o, type: 'highpass', f0: 7000, gain: 0.08 });
+    }
+    function schedule() {
+      while (nextTime < ctx.currentTime + 0.12) {
+        playStep(step, nextTime);
+        nextTime += STEP;
+        step = (step + 1) % (BARS.length * 16);
+      }
+    }
+    function syncMusic() {
+      const want = !!ctx && ctx.state === 'running' && !prefs.muted && prefs.music && prefs.musicVol > 0 && !document.hidden;
+      if (want && !timer) { nextTime = ctx.currentTime + 0.05; timer = setInterval(schedule, 25); }
+      else if (!want && timer) { clearInterval(timer); timer = 0; }
+    }
+    document.addEventListener('visibilitychange', syncMusic);
+
     return {
       unlock,
-      get muted() { return muted; },
-      setMuted(m) {
-        muted = m;
-        try { localStorage.setItem(STORE_MUTED, m ? '1' : '0'); } catch (e) {}
+      prefs,
+      set(k, v) {
+        prefs[k] = v;
+        try { localStorage.setItem(STORE_AUDIO, JSON.stringify(prefs)); } catch (e) {}
+        applyGains();
+        syncMusic();
       },
       swish(zoomIn) { noise(0.42, { q: 1.2, f0: zoomIn ? 500 : 3000, f1: zoomIn ? 3200 : 450, attack: 0.16, gain: 0.3 }); },
       click() {
@@ -946,6 +1066,7 @@
         tone(150, 0.14, { to: 60, gain: 0.3 });
         noise(0.06, { type: 'lowpass', f0: 900, gain: 0.15 });
       },
+      boost() { [659, 880, 1175].forEach((f, i) => tone(f, 0.12, { type: 'triangle', gain: 0.16, at: i * 0.06 })); },
       win(kind) {
         const notes = kind === 'jackpot' ? [523, 659, 784, 1047, 784, 1047, 1319, 1568]
           : kind === 'three' ? [523, 659, 784, 1047, 1319] : [523, 659, 784];
@@ -1168,7 +1289,8 @@
 
     syncBoostReel(cfg);
     const now = performance.now();
-    reels.forEach((r, i) => r.start(r.keys.indexOf(i < 3 ? outcome.reels[i] : outcome.boost), now));
+    reels.slice(0, 3).forEach((r, i) => r.start(r.keys.indexOf(outcome.reels[i]), now));
+    reelWraps[3].classList.add('waiting');   // the boost reel only spins once reels 1-3 show a match
     setMessage('Press the red buttons or Space to stop.', '');
     startLoop(now);
   }
@@ -1193,9 +1315,17 @@
     lever.classList.add('pull');
   }
 
-  function onReelStopped() {
+  function onReelStopped(r) {
     sfx.land();
-    if (reels.every((x) => x.state === 'stopped')) settle();
+    if (r.i === 3) { settle(); return; }
+    if (!reels.slice(0, 3).every((x) => x.state === 'stopped')) return;
+    // No match on reels 1-3 means the multiplier can't change anything, so the boost reel never spins.
+    if (evaluate(current.outcome, current.cfg).kind === 'none') { settle(); return; }
+    reelWraps[3].classList.remove('waiting');
+    reelWraps[3].classList.add('go');
+    reels[3].start(reels[3].keys.indexOf(current.outcome.boost), performance.now());
+    sfx.boost();
+    setMessage('A match! Stop the boost reel to see your multiplier.', 'win');
   }
 
   function evaluate(outcome, cfg) {
@@ -1230,6 +1360,7 @@
     const { cfg, outcome } = current;
     const res = evaluate(outcome, cfg);
     reels.forEach((r) => { r.state = 'idle'; });
+    reelWraps[3].classList.remove('waiting');
     spinning = false;
     lever.disabled = false;
 
@@ -1240,7 +1371,8 @@
 
     spinCount++;
     log.push({
-      n: spinCount, reels: outcome.reels.slice(), boost: outcome.boost, mult: res.mult,
+      n: spinCount, reels: outcome.reels.slice(),
+      boost: res.kind === 'none' ? null : outcome.boost, mult: res.kind === 'none' ? null : res.mult,
       kind: res.kind, voided: res.voided, fee: cfg.fee, payout: res.payout, net: round2(res.payout - cfg.fee),
     });
     addLogRow(log[log.length - 1]);
@@ -1248,6 +1380,7 @@
     const cls = res.voided ? 'void' : res.payout > 0 ? (res.kind === 'jackpot' ? 'jackpot' : 'win') : 'lose';
     setMessage(resultMessage(res, cfg), cls, isBroke());
     celebrate(res);
+    if (res.kind === 'jackpot' && res.payout > 0) leaderboard.record();
     if (isBroke()) later(showBroke, reduced ? 300 : 1200);
   }
 
@@ -1256,7 +1389,7 @@
   function clearEffects() {
     timers.forEach(clearTimeout);
     timers.length = 0;
-    reelWraps.forEach((w) => w.classList.remove('win', 'voided', 'stamped', 'shake'));
+    reelWraps.forEach((w) => w.classList.remove('win', 'voided', 'stamped', 'shake', 'waiting', 'go'));
     machine.classList.remove('flash', 'jackpot');
     banner.classList.remove('show');
     winLcd.classList.remove('hot');
@@ -1559,7 +1692,8 @@
       '<li>Pull the <b>lever</b> on the right (or press <kbd>Enter</kbd>) to spin. Each spin costs <b>' + money(s.fee) + '</b>.</li>' +
       '<li>The reels spin until you stop them: press the <b>red button</b> under a reel, or <kbd>Space</kbd> to stop the next reel from the left.</li>' +
       '<li>On reels 1–3, any <b>2 matching symbols</b> win <b>' + money(s.pair) + '</b>, <b>3 matching fruits</b> win <b>' + money(s.three) + '</b> and <b>three 7s</b> win the <b>' + money(s.jackpot) + ' jackpot</b>. Two 7s count as a pair.</li>' +
-      '<li>The 4th reel is the <b>boost</b>: ' + joinList(boosts) + '.</li>' +
+      '<li>If reels 1–3 show a match, the 4th <b>boost</b> reel starts spinning: ' + joinList(boosts) + '. With no match it stays still, since it couldn’t change anything.</li>' +
+      '<li>Every jackpot you win goes on the worldwide <b>leaderboard</b> under your name.</li>' +
       '<li>Results are drawn at random the moment you pull the lever. When you stop a reel never changes what you win.</li>';
     $('#zoomTip').textContent = canHover ? 'Tip: move your mouse over the machine to zoom in on the reels.' : 'Tip: tap the machine to zoom in on the reels, tap outside to zoom out.';
 
@@ -1600,7 +1734,7 @@
     return ok ? round2(v) : null;
   }
   function onFormInput(e) {
-    if (e.target.id === 's-balance') return;
+    if (!allInputs.includes(e.target)) return;
     const s = {
       fee: readNum(fields.fee), pair: readNum(fields.pair), three: readNum(fields.three), jackpot: readNum(fields.jackpot),
       boosts: [0, 1, 2].map((i) => ({ mult: readNum(fields.m[i]), weight: readNum(fields.w[i]) })),
@@ -1642,10 +1776,11 @@
     if (!settingsDlg.open) settingsDlg.showModal();
   }
   $('#gear').addEventListener('click', openSettings);
-  $('#helpBtn').addEventListener('click', () => introDlg.showModal());
-  document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
+  $('#helpBtn').addEventListener('click', () => openIntro());
+  const closeDlg = (d) => (d === introDlg ? finishIntro() : d.close());
+  document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => closeDlg(b.closest('dialog'))));
   // Click on the dimmed backdrop closes a dialog.
-  [introDlg, settingsDlg].forEach((d) => d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
+  [introDlg, settingsDlg, $('#lbDlg')].forEach((d) => d.addEventListener('click', (e) => { if (e.target === d) closeDlg(d); }));
 
   // ---------- Theme ----------
   const themeBtn = $('#themeToggle');
@@ -1694,16 +1829,17 @@
     const s = settings, wsum = weightSum(s);
     const pPaidMult = s.boosts.reduce((a, b) => a + (b.mult > 0 ? b.weight : 0), 0) / wsum;
     const pPaid = (P_PAIR * (s.pair > 0) + P_THREE * (s.three > 0) + P_JACKPOT * (s.jackpot > 0)) * pPaidMult;
+    const matched = count((e) => e.kind !== 'none');   // the boost reel only spins on these
     const rows = [
-      ['Any pair', P_PAIR, count((e) => e.kind === 'pair')],
-      ['3 matching fruits', P_THREE, count((e) => e.kind === 'three')],
-      ['Three 7s (jackpot)', P_JACKPOT, count((e) => e.kind === 'jackpot')],
-      ['No match', P_NONE, count((e) => e.kind === 'none')],
-      ...s.boosts.map((b, i) => ['Boost x' + fmtNum(b.mult), b.weight / wsum, count((e) => e.boost === i)]),
-      ['Paid win', pPaid, count((e) => e.payout > 0)],
+      ['Any pair', P_PAIR, count((e) => e.kind === 'pair'), n],
+      ['3 matching fruits', P_THREE, count((e) => e.kind === 'three'), n],
+      ['Three 7s (jackpot)', P_JACKPOT, count((e) => e.kind === 'jackpot'), n],
+      ['No match', P_NONE, count((e) => e.kind === 'none'), n],
+      ...s.boosts.map((b, i) => ['Boost x' + fmtNum(b.mult) + '*', b.weight / wsum, count((e) => e.boost === i), matched]),
+      ['Paid win', pPaid, count((e) => e.payout > 0), n],
     ];
-    $('#oddsBody').innerHTML = rows.map(([label, p, seen]) =>
-      '<tr><td>' + label + '</td><td>' + pct(p, p < 0.01 ? 2 : 1) + '</td><td>' + (n * p).toFixed(1) + '</td><td>' + seen + '</td></tr>').join('');
+    $('#oddsBody').innerHTML = rows.map(([label, p, seen, trials]) =>
+      '<tr><td>' + label + '</td><td>' + pct(p, p < 0.01 ? 2 : 1) + '</td><td>' + (trials * p).toFixed(1) + '</td><td>' + seen + '</td></tr>').join('');
 
     const ev = expectedPayout(s);
     $('#returnLine').innerHTML = (s.fee > 0 ? 'The machine pays back <b>' + pct(ev / s.fee) + '</b> on average' : 'Average payout is <b>' + money(ev) + '</b> per spin') +
@@ -1726,7 +1862,7 @@
     tr.innerHTML =
       '<td>' + e.n + '</td>' +
       '<td class="lr">' + e.reels.map(glyphInline).join('') + '</td>' +
-      '<td>x' + fmtNum(e.mult) + '</td>' +
+      '<td>' + (e.mult == null ? '–' : 'x' + fmtNum(e.mult)) + '</td>' +
       '<td>' + money(e.payout) + '</td>' +
       '<td class="' + (e.net > 0 ? 'pos' : e.net < 0 ? 'neg' : '') + '">' + signedMoney(e.net) + '</td>';
     logBody.prepend(tr);
@@ -1774,7 +1910,7 @@
   $('#copyLog').addEventListener('click', async (ev) => {
     const btn = ev.currentTarget;
     const rows = [['Spin', 'Reel 1', 'Reel 2', 'Reel 3', 'Multiplier']]
-      .concat(log.map((e) => [e.n].concat(e.reels.map((i) => SYMBOLS[i].name), [fmtNum(e.mult)])));
+      .concat(log.map((e) => [e.n].concat(e.reels.map((i) => SYMBOLS[i].name), [e.mult == null ? '' : fmtNum(e.mult)])));
     const text = rows.map((r) => r.join('\t')).join('\n');
     let ok = false;
     try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = fallbackCopy(text); }
@@ -1852,13 +1988,131 @@
 
   const muteBtn = $('#muteBtn');
   function renderMute() {
-    muteBtn.setAttribute('aria-pressed', String(!sfx.muted));
-    muteBtn.setAttribute('aria-label', sfx.muted ? 'Turn sound on' : 'Mute sound');
-    muteBtn.querySelector('.snd-on').style.display = sfx.muted ? 'none' : '';
-    muteBtn.querySelector('.snd-off').style.display = sfx.muted ? '' : 'none';
+    const m = sfx.prefs.muted;
+    muteBtn.setAttribute('aria-pressed', String(!m));
+    muteBtn.setAttribute('aria-label', m ? 'Turn sound on' : 'Mute all sound');
+    muteBtn.querySelector('.snd-on').style.display = m ? 'none' : '';
+    muteBtn.querySelector('.snd-off').style.display = m ? '' : 'none';
+    $('#allSound').setAttribute('aria-checked', String(!m));
+    $('#musicToggle').setAttribute('aria-checked', String(sfx.prefs.music));
+    $('#musicVol').value = Math.round(sfx.prefs.musicVol * 100);
+    $('#sfxVol').value = Math.round(sfx.prefs.sfxVol * 100);
   }
-  muteBtn.addEventListener('click', () => { sfx.setMuted(!sfx.muted); renderMute(); sfx.click(); });
+  const toggleMute = () => { sfx.set('muted', !sfx.prefs.muted); renderMute(); sfx.click(); };
+  muteBtn.addEventListener('click', toggleMute);
+  $('#allSound').addEventListener('click', toggleMute);
+  $('#musicToggle').addEventListener('click', () => { sfx.set('music', !sfx.prefs.music); renderMute(); });
+  $('#musicVol').addEventListener('input', (e) => sfx.set('musicVol', e.target.value / 100));
+  $('#sfxVol').addEventListener('input', (e) => sfx.set('sfxVol', e.target.value / 100));
+  $('#sfxVol').addEventListener('change', () => sfx.click());   // let the player hear the new level
   renderMute();
+
+  // ---------- Player name ----------
+  const cleanName = (v) => String(v).replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20);
+  let playerName = '';
+  try { playerName = cleanName(localStorage.getItem(STORE_NAME) || ''); } catch (e) {}
+  const nameInput = $('#playerName');
+  function openIntro() {
+    nameInput.value = playerName;
+    $('#nameErr').textContent = '';
+    if (!introDlg.open) introDlg.showModal();
+    if (!playerName) nameInput.focus(); else $('#introOk').focus();
+  }
+  function finishIntro() {
+    const n = cleanName(nameInput.value);
+    if (!n) {
+      $('#nameErr').textContent = 'Type a name so your jackpots can go on the leaderboard.';
+      nameInput.focus();
+      return;
+    }
+    playerName = n;
+    try { localStorage.setItem(STORE_NAME, n); } catch (e) {}
+    introDlg.close();
+    leaderboard.flush();
+  }
+  $('#introOk').addEventListener('click', finishIntro);
+  nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); finishIntro(); } });
+  introDlg.addEventListener('cancel', (e) => { if (!playerName) e.preventDefault(); });
+
+  // ---------- Worldwide jackpot leaderboard (Firebase Realtime Database over REST) ----------
+  // shortcut: anyone who reads this page's code can post fake jackpots; fine for a class game,
+  // move the writes behind a server or Firebase Auth if the board ever needs to be trustworthy.
+  const leaderboard = (() => {
+    const base = LEADERBOARD_URL.replace(/\/+$/, '');
+    // Database keys can't contain . # $ [ ] /, so names are percent-encoded (and encoded again for the URL).
+    const keyFor = (name) => encodeURIComponent(name.toLowerCase()).replace(/\./g, '%2E');
+    let pending = 0, flushing = false;
+    try { pending = Math.max(0, parseInt(localStorage.getItem(STORE_PENDING), 10) || 0); } catch (e) {}
+    const savePending = () => { try { localStorage.setItem(STORE_PENDING, String(pending)); } catch (e) {} };
+    // Jackpots wait on this device until they upload, so a dropped connection never loses one.
+    async function flush() {
+      if (!base || flushing || !pending || !playerName) return;
+      flushing = true;
+      try {
+        while (pending > 0) {
+          const res = await fetch(base + '/boost7/jackpots/' + encodeURIComponent(keyFor(playerName)) + '.json', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: playerName, n: { '.sv': { increment: 1 } }, at: { '.sv': 'timestamp' } }),
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          pending--;
+          savePending();
+        }
+      } catch (e) {
+        // kept in `pending`; retried on the next jackpot, page load or leaderboard open
+      }
+      flushing = false;
+    }
+    function record() { pending++; savePending(); return flush(); }
+    async function top() {
+      const res = await fetch(base + '/boost7/jackpots.json');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      // Rows come from other players, so only well-formed ones are shown (and only ever as text).
+      return Object.values(data && typeof data === 'object' ? data : {})
+        .filter((r) => r && typeof r.name === 'string' && r.name.length >= 1 && r.name.length <= 20 && Number.isInteger(r.n) && r.n > 0)
+        .sort((a, b) => b.n - a.n || (a.at || 0) - (b.at || 0))
+        .slice(0, 50);
+    }
+    return { record, flush, top, get configured() { return !!base; }, get pending() { return pending; } };
+  })();
+
+  const lbDlg = $('#lbDlg'), lbList = $('#lbList'), lbStatus = $('#lbStatus');
+  async function openLeaderboard() {
+    if (!lbDlg.open) lbDlg.showModal();
+    $('#lbYou').textContent = playerName ? 'Playing as ' + playerName : '';
+    lbList.textContent = '';
+    const waiting = leaderboard.pending
+      ? ' ' + leaderboard.pending + (leaderboard.pending === 1 ? ' jackpot is' : ' jackpots are') + ' saved on this device, waiting to upload.'
+      : '';
+    if (!leaderboard.configured) {
+      lbStatus.textContent = 'The worldwide leaderboard isn’t connected yet.' + waiting;
+      return;
+    }
+    lbStatus.textContent = 'Loading…';
+    await leaderboard.flush();
+    try {
+      const rows = await leaderboard.top();
+      for (const [i, r] of rows.entries()) {
+        const li = document.createElement('li');
+        if (playerName && r.name.toLowerCase() === playerName.toLowerCase()) li.className = 'me';
+        for (const [cls, text] of [['rank', '#' + (i + 1)], ['who', r.name], ['cnt', r.n + (r.n === 1 ? ' jackpot' : ' jackpots')]]) {
+          const span = document.createElement('span');
+          span.className = cls;
+          span.textContent = text;
+          li.append(span);
+        }
+        lbList.append(li);
+      }
+      const after = leaderboard.pending ? ' ' + leaderboard.pending + ' of yours still waiting to upload.' : '';
+      lbStatus.textContent = (rows.length ? 'Most jackpots first, from everyone playing Boost 7.' : 'No jackpots yet. Hit three 7s to be first on the board.') + after;
+    } catch (e) {
+      lbStatus.textContent = 'Couldn’t load the leaderboard. Check the internet connection and press Refresh.' + waiting;
+    }
+  }
+  $('#lbBtn').addEventListener('click', openLeaderboard);
+  $('#lbRefresh').addEventListener('click', openLeaderboard);
 
   // ---------- Init ----------
   fillForm(settings);
@@ -1868,7 +2122,8 @@
   layout();
   void machine.offsetWidth;            // apply the first fit before transitions are switched on
   machine.classList.add('ready');
-  introDlg.showModal();
+  openIntro();
+  leaderboard.flush();
 })();
 </script>
 </body>

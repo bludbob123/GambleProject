@@ -50,6 +50,7 @@
     transition: background-color .3s, color .3s;
     -webkit-tap-highlight-color: transparent;
   }
+  [hidden] { display: none !important; }
   button, input { font: inherit; color: inherit; }
   button { touch-action: manipulation; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -743,6 +744,16 @@
       <input id="sfxVol" type="range" min="0" max="100" step="1">
     </div>
 
+    <h3>Game settings</h3>
+    <div id="lockBox">
+      <p class="hint">Enter the code to change the balance, prizes and odds.</p>
+      <div class="inline" style="margin-top:10px">
+        <span class="num" style="flex:1;width:auto"><input id="unlockCode" type="password" autocomplete="off" placeholder="Code" aria-label="Settings code" style="padding-left:11px"></span>
+        <button class="btn" id="unlockBtn" type="button">Unlock</button>
+      </div>
+      <p class="err" id="unlockErr" role="alert"></p>
+    </div>
+    <div id="lockedArea" hidden>
     <h3>Balance</h3>
     <div class="row">
       <label class="row-label" for="s-balance">Current balance</label>
@@ -773,9 +784,10 @@
     <p class="hint">Odds are relative weights: 1 / 1 / 1 gives each boost an equal chance, 2 / 1 / 1 makes the first one twice as likely.</p>
     <p class="err" id="settingsErr" role="alert"></p>
     <div class="stat" id="rtp"></div>
-    <p class="hint">Changes apply to the next spin.</p>
+    <p class="hint">Changes apply to the next spin and are kept when you reset your stats.</p>
+    </div>
     <div class="dlg-foot">
-      <button class="btn" id="resetDefaults" type="button">Reset to defaults</button>
+      <button class="btn" id="resetDefaults" type="button" hidden>Reset to defaults</button>
       <button class="btn primary" type="button" data-close>Done</button>
     </div>
   </div>
@@ -1748,6 +1760,38 @@
   }
   $('#setBalance').addEventListener('click', applyBalanceField);
   $('#s-balance').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyBalanceField(); } });
+
+  // ---------- Settings lock ----------
+  // shortcut: the check runs in the browser, so someone reading the page's code could get around it;
+  // fine for keeping other players out of the odds, not real security.
+  const CODE_SHA256 = 'a45e2df6b898e7c4fb895fd86ed479b7e158eb71246fae17e5f0b55e217d5bdc';
+  let unlocked = false;
+  function renderLock() {
+    $('#lockBox').hidden = unlocked;
+    $('#lockedArea').hidden = !unlocked;
+    $('#resetDefaults').hidden = !unlocked;
+  }
+  async function tryUnlock() {
+    const el = $('#unlockCode'), err = $('#unlockErr');
+    if (!(window.crypto && crypto.subtle)) { err.textContent = 'Unlocking only works when the game is opened over https or localhost.'; return; }
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(el.value.trim().toLowerCase()));
+    const hex = [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    if (hex !== CODE_SHA256) {
+      err.textContent = 'That code isn’t right.';
+      markBad(el, true);
+      el.select();
+      return;
+    }
+    unlocked = true;
+    el.value = '';
+    markBad(el, false);
+    err.textContent = '';
+    renderLock();
+    $('#s-balance').focus();
+  }
+  $('#unlockBtn').addEventListener('click', tryUnlock);
+  $('#unlockCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); } });
+  renderLock();
 
   function openSettings() {
     $('#s-balance').value = balance;
